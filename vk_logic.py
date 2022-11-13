@@ -7,7 +7,7 @@ vk_token = os.getenv('VK_SKEY')
 
 
 def get_post(post_id):
-    url = f'https://api.vk.com/method/wall.getById?posts=-{post_id}&access_token={vk_token}&v=5.131'
+    url = f'https://api.vk.com/method/wall.getById?posts={post_id}&access_token={vk_token}&v=5.131'
     try:
         response = requests.get(url)
         current_post = Post(**response.json()['response'][0])
@@ -32,6 +32,7 @@ def get_post_photos(post_item):
     photos = list()
     for item in attachments_list:
         for size in item.photo.sizes:
+            # TODO: Do something if there's no size.type == 'z'
             if size.type == 'z':
                 photos.append(size.url)
     return photos

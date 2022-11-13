@@ -13,7 +13,7 @@ bot = telebot.TeleBot(tg_token)
 
 @bot.message_handler(commands=["start"])
 def bot_start(m, res=False):
-    bot.send_message(m.chat.id, 'Привет! Пришли мне ссылку на пост из ВК и я преобразую его в сообщение.'
+    bot.send_message(m.chat.id, 'Привет! Пришли мне ссылку на пост из ВК и я преобразую его в сообщение. '
                                 'Например - <code>https://vk.com/wall-58509583_543307</code>',
                      parse_mode='HTML'
                      )
@@ -22,7 +22,7 @@ def bot_start(m, res=False):
 @bot.message_handler(content_types=["text"])
 def bot_handle_message(message):
     try:
-        post_id = re.search(r'\d*_\d*', message.text).group(0)
+        post_id = re.search(r'wall(.\d*_\d*)', message.text).group(1)
     except AttributeError:
         return bot.send_message(
             message.chat.id, 'Ошибка. Пришлите ссылку на пост! Например - '
