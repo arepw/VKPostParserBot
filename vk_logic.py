@@ -30,9 +30,18 @@ def get_post_attachments(post_item, attachment_type):
 def get_post_photos(post_item):
     attachments_list = get_post_attachments(post_item, attachment_type='photo')
     photos = list()
+    # The VK attachment with type 'photo' has multiple variations of sizes.
+    # x, y, z, m (in ascending order) are the highest quality types.
+    sizes_dict = {
+        10: 'w',
+        9: 'z',
+        8: 'y',
+        7: 'x'
+    }
     for item in attachments_list:
         for size in item.photo.sizes:
-            # TODO: Do something if there's no size.type == 'z'
-            if size.type == 'z':
+            # getting length of photo.sizes to define max. size type of the photo
+            # that we can get.
+            if size.type == sizes_dict.get(len(item.photo.sizes)):
                 photos.append(size.url)
     return photos

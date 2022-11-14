@@ -29,16 +29,24 @@ def bot_handle_message(message):
                              '<code>https://vk.com/wall-58509583_543307</code>',
             parse_mode='HTML'
         )
-    vk_post = get_post(post_id)
+    try:
+        vk_post = get_post(post_id)
+    except IndexError:
+        # response from API is empty
+        return bot.send_message(message.chat.id, 'Не удалось получить доступ к записи!')
     vk_post_photos = get_post_photos(vk_post)
-    message_medias = list()
-    for count, photo_url in enumerate(vk_post_photos):
-        if count == 0:
-            message_medias.append(telebot.types.InputMediaPhoto(
-                photo_url, caption=vk_post.text))
-        else:
-            message_medias.append(telebot.types.InputMediaPhoto(photo_url))
-    return bot.send_media_group(message.chat.id, message_medias)
+    if len(vk_post_photos) > 0:
+        message_medias = list()
+        for count, photo_url in enumerate(vk_post_photos):
+            if count == 0:
+                # the text of the post should be added to the first InputMedia "caption" field.
+                message_medias.append(telebot.types.InputMediaPhoto(
+                    photo_url, caption=vk_post.text))
+            else:
+                message_medias.append(telebot.types.InputMediaPhoto(photo_url))
+        return bot.send_media_group(message.chat.id, message_medias)
+    else:
+        return bot.send_message(message.chat.id, vk_post.text)
 
 
 if __name__ == '__main__':
