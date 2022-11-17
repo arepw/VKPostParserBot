@@ -10,11 +10,12 @@ def get_post(post_id):
     url = f'https://api.vk.com/method/wall.getById?posts={post_id}&access_token={vk_token}&v=5.131'
     try:
         response = requests.get(url)
+        print(response.json())
         current_post = Post(**response.json()['response'][0])
     except ValidationError as e:
         return e
-    except requests.RequestException:
-        return 'Check your Internet connection'
+    except requests.RequestException as e:
+        return e
     return current_post
 
 
@@ -45,3 +46,22 @@ def get_post_photos(post_item):
             if size.type == sizes_dict.get(len(item.photo.sizes)):
                 photos.append(size.url)
     return photos
+
+
+def get_post_videos(post_item, vk_oauthkey):
+    attachments_list = get_post_attachments(post_item, attachment_type='video')
+    videos_ids = str()
+    for item in attachments_list:
+        videos_ids += f'{item.video.owner_id}_{item.video.id},'
+    url = f'https://api.vk.com/method/video.get?videos={videos_ids}&access_token={vk_oauthkey}&v=5.131'
+    try:
+        response = requests.get(url)
+        videos = VideosList(**response.json()['response'])
+    except ValidationError as e:
+        return e
+    except requests.RequestException as e:
+        return e
+    videos_urls = list()
+    for video in videos.items:
+        videos_urls.append(video.player)
+    return videos_urls

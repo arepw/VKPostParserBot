@@ -2,12 +2,12 @@ import os
 import requests
 import re
 from models import *
-from vk_logic import get_post, get_post_photos
+from vk_logic import get_post, get_post_photos, get_post_videos
 from pydantic import ValidationError
 import telebot
 
 tg_token = os.getenv('TG_TOKEN')
-
+vk_oauthkey = os.getenv('VK_OAUTHKEY')
 bot = telebot.TeleBot(tg_token)
 
 
@@ -35,6 +35,13 @@ def bot_handle_message(message):
         # response from API is empty
         return bot.send_message(message.chat.id, 'Не удалось получить доступ к записи!')
     vk_post_photos = get_post_photos(vk_post)
+    vk_post_videos = get_post_videos(vk_post, vk_oauthkey)
+    if len(vk_post_videos) > 0:
+        message_medias = list()
+        for video_url in vk_post_videos:
+            message_medias.append(telebot.types.InputMediaVideo(media=video_url))
+            return bot.send_video(message.chat.id, video_url)
+        return bot.send_media_group(message.chat.id, message_medias)
     if len(vk_post_photos) > 0:
         message_medias = list()
         for count, photo_url in enumerate(vk_post_photos):

@@ -21,6 +21,13 @@ class Video(BaseModel):
     image: list[VideoCover]
     date: int
     player: HttpUrl | None = None
+    id: int
+    owner_id: int
+
+
+class VideosList(BaseModel):
+    count: int
+    items: list[Video]
 
 
 class Attachment(BaseModel):
