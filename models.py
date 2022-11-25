@@ -15,12 +15,21 @@ class VideoCover(BaseModel):
     url: HttpUrl
 
 
+class VideoFiles(BaseModel):
+    mp4_144: HttpUrl | None = None
+    mp4_240: HttpUrl | None = None
+    mp4_360: HttpUrl | None = None
+    mp4_480: HttpUrl | None = None
+
+
 class Video(BaseModel):
     title: str
     duration: int
+    files: VideoFiles | None = None
     image: list[VideoCover]
     date: int
     player: HttpUrl | None = None
+    platform: str | None = None
     id: int
     owner_id: int
 

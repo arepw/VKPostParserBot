@@ -2,56 +2,107 @@ import os
 import requests
 import re
 from models import *
-from vk_logic import get_post, get_post_photos, get_post_videos
+from vk_logic import get_post, get_post_photos, get_post_videos, get_post_audios, get_post_attachment_types
 from pydantic import ValidationError
 import telebot
 
 tg_token = os.getenv('TG_TOKEN')
-vk_oauthkey = os.getenv('VK_OAUTHKEY')
 bot = telebot.TeleBot(tg_token)
+
+
+def get_post_id(user_message):
+    try:
+        post_id = re.search(r'wall(.\d*_\d*)', user_message).group(1)
+        return post_id
+    except AttributeError:
+        return False
+
+
+def prefered_videofile(video):
+    if video.files.mp4_480 is not None and video.duration < 90:
+        return video.files.mp4_480
+    elif video.files.mp4_360 is not None and video.duration < 120:
+        return video.files.mp4_360
+    elif video.files.mp4_240 is not None and video.duration < 180:
+        return video.files.mp4_240
+    elif video.files.mp4_144 is not None and video.duration < 240:
+        return video.files.mp4_144
+    else:
+        raise AttributeError
 
 
 @bot.message_handler(commands=["start"])
 def bot_start(m, res=False):
     bot.send_message(m.chat.id, 'Привет! Пришли мне ссылку на пост из ВК и я преобразую его в сообщение. '
-                                'Например - <code>https://vk.com/wall-58509583_543307</code>',
+                                '\nНапример <code>https://vk.com/wall-58509583_543307</code>'
+                                '\nИли <code>https://vk.com/feed?w=wall-58509583_549358</code>',
                      parse_mode='HTML'
                      )
 
 
 @bot.message_handler(content_types=["text"])
 def bot_handle_message(message):
-    try:
-        post_id = re.search(r'wall(.\d*_\d*)', message.text).group(1)
-    except AttributeError:
+    post_id = get_post_id(message.text)
+    if post_id:
+        try:
+            vk_post = get_post(post_id)
+        except IndexError:
+            # response from API is empty
+            return bot.send_message(message.chat.id, 'Не удалось получить доступ к записи!')
+    else:
         return bot.send_message(
-            message.chat.id, 'Ошибка. Пришлите ссылку на пост! Например - '
-                             '<code>https://vk.com/wall-58509583_543307</code>',
+            message.chat.id, 'Ошибка. Пришлите ссылку на пост!'
+                             '\nНапример <code>https://vk.com/wall-58509583_543307</code>'
+                             '\nИли <code>https://vk.com/feed?w=wall-58509583_549358</code>',
             parse_mode='HTML'
         )
-    try:
-        vk_post = get_post(post_id)
-    except IndexError:
-        # response from API is empty
-        return bot.send_message(message.chat.id, 'Не удалось получить доступ к записи!')
-    vk_post_photos = get_post_photos(vk_post)
-    vk_post_videos = get_post_videos(vk_post, vk_oauthkey)
-    if len(vk_post_videos) > 0:
-        message_medias = list()
-        for video_url in vk_post_videos:
-            message_medias.append(telebot.types.InputMediaVideo(media=video_url))
-            return bot.send_video(message.chat.id, video_url)
-        return bot.send_media_group(message.chat.id, message_medias)
-    if len(vk_post_photos) > 0:
-        message_medias = list()
-        for count, photo_url in enumerate(vk_post_photos):
-            if count == 0:
-                # the text of the post should be added to the first InputMedia "caption" field.
-                message_medias.append(telebot.types.InputMediaPhoto(
-                    photo_url, caption=vk_post.text))
-            else:
+    post_attachment_types = get_post_attachment_types(vk_post)
+    message_medias = list()
+    if post_attachment_types:
+        if 'photo' in post_attachment_types:
+            vk_post_photos = get_post_photos(vk_post)
+            for photo_url in vk_post_photos:
                 message_medias.append(telebot.types.InputMediaPhoto(photo_url))
-        return bot.send_media_group(message.chat.id, message_medias)
+        if 'video' in post_attachment_types:
+            bot.send_message(message.chat.id, 'В посте есть видео, мне нужно загрузить их чтобы отправить вам.'
+                                              '\nСекундочку...')
+            vk_post_videos = get_post_videos(vk_post)
+            try:
+                for video in vk_post_videos.items:
+                    # Just limitations
+                    if video.platform is None and video.duration < 241:
+                        try:
+                            # Download video to send
+                            response = requests.get(prefered_videofile(video))
+                            message_medias.append(
+                                telebot.types.InputMediaVideo(media=response.content, supports_streaming=True))
+                        except requests.RequestException:
+                            return bot.send_message(message.chat.id, f'Не удалось получить видео "<i>{video.title}</i>"'
+                                                                     f' из поста!', parse_mode='HTML')
+                        except AttributeError:
+                            vk_post.text += f'\n{video.player} - "VK"'
+                            bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения '
+                                                              f'бота, '
+                                                              f'либо невозможно получить качество видео подходящее под '
+                                                              f'ограничения.\nВидео будет добавлено в виде ссылки.',
+                                             parse_mode='HTML'
+                                             )
+                    else:
+                        vk_post.text += f'\n{video.player} - {"VK" if video.platform is None else video.platform}'
+                        bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения бота, '
+                                                          f'либо '
+                                                          f'размещено вне ВКонтакте!\nВидео будет добавлено в виде '
+                                                          f'ссылки.', parse_mode='HTML')
+            except AttributeError:
+                return bot.send_message(message.chat.id, 'Не удалось получить видео из поста!')
+        if 'audio' in post_attachment_types:
+            vk_post_audios = get_post_audios(vk_post)
+        # the text of the post should be added to the first InputMedia "caption" field.
+        try:
+            message_medias[0].caption = vk_post.text
+            return bot.send_media_group(message.chat.id, message_medias)
+        except IndexError:
+            return bot.send_message(message.chat.id, vk_post.text)
     else:
         return bot.send_message(message.chat.id, vk_post.text)
 
