@@ -18,6 +18,12 @@ def get_post_id(user_message):
         return False
 
 
+def text_handler(vk_post):
+    formatted_text = vk_post.text
+    formatted_text = formatted_text.split()
+    # TODO: format text to display links
+
+
 def prefered_videofile(video):
     if video.files.mp4_480 is not None and video.duration < 90:
         return video.files.mp4_480
@@ -58,6 +64,7 @@ def bot_handle_message(message):
         )
     post_attachment_types = get_post_attachment_types(vk_post)
     message_medias = list()
+    message_audios = list()
     if post_attachment_types:
         if 'photo' in post_attachment_types:
             vk_post_photos = get_post_photos(vk_post)
@@ -97,14 +104,23 @@ def bot_handle_message(message):
                 return bot.send_message(message.chat.id, 'Не удалось получить видео из поста!')
         if 'audio' in post_attachment_types:
             vk_post_audios = get_post_audios(vk_post)
+            for audio in vk_post_audios.items:
+                message_audios.append(
+                    telebot.types.InputMediaAudio(
+                        media=audio.url, duration=audio.duration,
+                        caption=f'{audio.artist} - {audio.title}'
+                    )
+                )
         # the text of the post should be added to the first InputMedia "caption" field.
         try:
             message_medias[0].caption = vk_post.text
-            return bot.send_media_group(message.chat.id, message_medias)
+            bot.send_media_group(message.chat.id, message_medias)
+            if message_audios:
+                bot.send_media_group(message.chat.id, message_audios)
         except IndexError:
             return bot.send_message(message.chat.id, vk_post.text)
     else:
-        return bot.send_message(message.chat.id, vk_post.text)
+        bot.send_message(message.chat.id, vk_post.text)
 
 
 if __name__ == '__main__':

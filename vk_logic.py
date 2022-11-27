@@ -78,7 +78,6 @@ def get_post_videos(post_item):
     url = f'https://api.vk.com/method/video.get?videos={videos_ids}&access_token={vk_oauth}&v=5.131'
     try:
         response = requests.get(url)
-        print(response.json()['response']['items'][0]['files'])
         videos = VideosList(**response.json()['response'])
     except ValidationError as e:
         return e
@@ -88,4 +87,16 @@ def get_post_videos(post_item):
 
 
 def get_post_audios(post_item):
-    pass
+    attachments_list = get_post_attachments(post_item, attachment_type='audio')
+    audio_ids = str()
+    for item in attachments_list:
+        audio_ids += f'{item.audio.owner_id}_{item.audio.id},'
+    url = f'https://api.vk.com/method/audio.getById?audios={audio_ids}&access_token={vk_oauth}&v=5.131'
+    try:
+        response = requests.get(url)
+        audios = AudiosList(**response.json())
+    except ValidationError as e:
+        return e
+    except requests.RequestException as e:
+        return e
+    return audios
