@@ -74,41 +74,44 @@ def bot_handle_message(message):
             bot.send_message(message.chat.id, 'В посте есть видео, мне нужно загрузить их чтобы отправить вам.'
                                               '\nСекундочку...')
             vk_post_videos = get_post_videos(vk_post)
-            try:
-                for video in vk_post_videos.items:
-                    # Just limitations
-                    if video.platform is None and video.duration < 241:
-                        try:
-                            # Download video to send
-                            response = requests.get(prefered_videofile(video))
-                            message_medias.append(
-                                telebot.types.InputMediaVideo(media=response.content, supports_streaming=True))
-                        except requests.RequestException:
-                            return bot.send_message(message.chat.id, f'Не удалось получить видео "<i>{video.title}</i>"'
-                                                                     f' из поста!', parse_mode='HTML')
-                        except AttributeError:
-                            vk_post.text += f'\n{video.player} - "VK"'
-                            bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения '
-                                                              f'бота, '
-                                                              f'либо невозможно получить качество видео подходящее под '
-                                                              f'ограничения.\nВидео будет добавлено в виде ссылки.',
-                                             parse_mode='HTML'
-                                             )
-                    else:
-                        vk_post.text += f'\n{video.player} - {"VK" if video.platform is None else video.platform}'
-                        bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения бота, '
-                                                          f'либо '
-                                                          f'размещено вне ВКонтакте!\nВидео будет добавлено в виде '
-                                                          f'ссылки.', parse_mode='HTML')
-            except AttributeError:
-                return bot.send_message(message.chat.id, 'Не удалось получить видео из поста!')
+            if vk_post_videos.items:
+                try:
+                    for video in vk_post_videos.items:
+                        # Just limitations
+                        if video.platform is None and video.duration < 241:
+                            try:
+                                # Download video to send
+                                response = requests.get(prefered_videofile(video))
+                                message_medias.append(
+                                    telebot.types.InputMediaVideo(media=response.content, supports_streaming=True))
+                            except requests.RequestException:
+                                bot.send_message(message.chat.id, f'Не удалось получить видео "<i>{video.title}</i>"'
+                                                                         f' из поста!', parse_mode='HTML')
+                            except AttributeError:
+                                vk_post.text += f'\n{video.player} - "VK"'
+                                bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения '
+                                                                  f'бота, '
+                                                                  f'либо невозможно получить качество видео подходящее под '
+                                                                  f'ограничения.\nВидео будет добавлено в виде ссылки.',
+                                                 parse_mode='HTML'
+                                                 )
+                        else:
+                            vk_post.text += f'\n{video.player} - {"VK" if video.platform is None else video.platform}'
+                            bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения бота, '
+                                                              f'либо '
+                                                              f'размещено вне ВКонтакте!\nВидео будет добавлено в виде '
+                                                              f'ссылки.', parse_mode='HTML')
+                except AttributeError:
+                    bot.send_message(message.chat.id, 'Не удалось получить видео из поста!')
+            else:
+                bot.send_message(message.chat.id, 'Не удалось получить видео из поста!')
         if 'audio' in post_attachment_types:
             vk_post_audios = get_post_audios(vk_post)
             for audio in vk_post_audios.items:
                 message_audios.append(
                     telebot.types.InputMediaAudio(
                         media=audio.url, duration=audio.duration,
-                        caption=f'{audio.artist} - {audio.title}'
+                        caption=f'🎵 {audio.artist} - {audio.title}'
                     )
                 )
         # the text of the post should be added to the first InputMedia "caption" field.

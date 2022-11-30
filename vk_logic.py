@@ -36,10 +36,13 @@ def get_post_attachment_types(post_item):
     """
     attachment_types = ['photo', 'video', 'audio']
     post_attachment_types = list()
-    for attachment_type in attachment_types:
-        if get_post_attachments(post_item, attachment_type):
-            post_attachment_types.append(attachment_type)
-    return post_attachment_types
+    if post_item.attachments is not None:
+        for attachment_type in attachment_types:
+            if get_post_attachments(post_item, attachment_type):
+                post_attachment_types.append(attachment_type)
+        return post_attachment_types
+    else:
+        return False
 
 
 def get_post_photos(post_item):

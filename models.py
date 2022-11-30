@@ -64,4 +64,4 @@ class Post(BaseModel):
     from_id: int
     date: int
     text: str
-    attachments: list[Attachment]
+    attachments: list[Attachment] | None = None
