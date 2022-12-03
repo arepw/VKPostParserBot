@@ -22,21 +22,13 @@ def text_handler(post_text):
     """
     handle mentions in the text like @arepw to make them clickable links. Initially they look like this:
     " [id12345|username] or [club12345|club name] "
-    The recursive method runs through the text until there are no matches left.
     "(?!http[s]?:)" in the regular expression pattern prevents fooling users with something like:
     " [iplogger.com/...|Click me please] "
     :return: str(post_text)
     """
-    regex = r'\[(?!http[s]?:)(.*?)\|(.*?)\]'
-    try:
-        match = re.search(regex, post_text)
-        post_text = post_text.replace(
-            post_text[match.span()[0]:match.span()[1]],
-            f'<a href="https://vk.com/{match.group(1)}">{match.group(2)}</a>'
-        )
-        return text_handler(post_text)
-    except AttributeError:
-        return post_text
+    regex = re.compile(r'\[(?!http[s]?:)(.*?)\|(.*?)\]')
+    post_text = re.sub(regex, r'<a href="https://vk.com/\1">\2</a>', post_text)
+    return post_text
 
 
 def prefered_videofile(video):
