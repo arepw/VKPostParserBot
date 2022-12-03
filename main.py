@@ -18,10 +18,25 @@ def get_post_id(user_message):
         return False
 
 
-def text_handler(vk_post):
-    formatted_text = vk_post.text
-    formatted_text = formatted_text.split()
-    # TODO: format text to display links
+def text_handler(post_text):
+    """
+    handle mentions in the text like @arepw to make them clickable links. Initially they look like this:
+    " [id12345|username] or [club12345|club name] "
+    The recursive method runs through the text until there are no matches left.
+    "(?!http[s]?:)" in the regular expression pattern prevents fooling users with something like:
+    " [iplogger.com/...|Click me please] "
+    :return: str(post_text)
+    """
+    regex = r'\[(?!http[s]?:)(.*?)\|(.*?)\]'
+    try:
+        match = re.search(regex, post_text)
+        post_text = post_text.replace(
+            post_text[match.span()[0]:match.span()[1]],
+            f'<a href="https://vk.com/{match.group(1)}">{match.group(2)}</a>'
+        )
+        return text_handler(post_text)
+    except AttributeError:
+        return post_text
 
 
 def prefered_videofile(video):
@@ -62,6 +77,7 @@ def bot_handle_message(message):
                              '\nИли <code>https://vk.com/feed?w=wall-58509583_549358</code>',
             parse_mode='HTML'
         )
+    vk_post.text = text_handler(vk_post.text)
     post_attachment_types = get_post_attachment_types(vk_post)
     message_medias = list()
     message_audios = list()
@@ -116,14 +132,14 @@ def bot_handle_message(message):
                 )
         # the text of the post should be added to the first InputMedia "caption" field.
         try:
-            message_medias[0].caption = vk_post.text
+            (message_medias[0].caption, message_medias[0].parse_mode) = (vk_post.text, 'HTML')
             bot.send_media_group(message.chat.id, message_medias)
             if message_audios:
                 bot.send_media_group(message.chat.id, message_audios)
         except IndexError:
-            return bot.send_message(message.chat.id, vk_post.text)
+            return bot.send_message(message.chat.id, vk_post.text, parse_mode='HTML')
     else:
-        bot.send_message(message.chat.id, vk_post.text)
+        bot.send_message(message.chat.id, vk_post.text, parse_mode='HTML')
 
 
 if __name__ == '__main__':
