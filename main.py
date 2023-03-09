@@ -18,16 +18,23 @@ def get_post_id(user_message):
         return False
 
 
-def text_handler(post_text):
+def text_handler(post_item: Post) -> str:
     """
-    handle mentions in the text like @arepw to make them clickable links. Initially they look like this:
+    1. handle mentions in the text like @arepw to make them clickable links. Initially they look like this:
     " [id12345|username] or [club12345|club name] "
     "(?!http[s]?:)" in the regular expression pattern prevents fooling users with something like:
-    " [iplogger.com/...|Click me please] "
+    " [iplogger.com/...|Click me please]"
+    2. crops text if its length more than 1024 characters in case there are some media attachments
+    and adds link to the original VK post.
+    (Telegram limits attachment's caption length to 1024 char.)
     :return: str(post_text)
     """
+    attachments = get_post_attachment_types(post_item)
+    if attachments and len(post_item.text) > 1023:
+        post_item.text = post_item.text[:880]
+        post_item.text += f'...\n<a href="https://vk.com/wall{post_item.from_id}_{post_item.id}">продолжение👈</a>'
     regex = re.compile(r'\[(?!http[s]?:)(.*?)\|(.*?)\]')
-    post_text = re.sub(regex, r'<a href="https://vk.com/\1">\2</a>', post_text)
+    post_text = re.sub(regex, r'<a href="https://vk.com/\1">\2</a>', post_item.text)
     return post_text
 
 
@@ -55,6 +62,7 @@ def bot_start(m, res=False):
 
 @bot.message_handler(content_types=["text"])
 def bot_handle_message(message):
+    # TODO: Clean up this mess
     post_id = get_post_id(message.text)
     if post_id:
         try:
@@ -69,7 +77,7 @@ def bot_handle_message(message):
                              '\nИли <code>https://vk.com/feed?w=wall-58509583_549358</code>',
             parse_mode='HTML'
         )
-    vk_post.text = text_handler(vk_post.text)
+    vk_post.text = text_handler(vk_post)
     post_attachment_types = get_post_attachment_types(vk_post)
     message_medias = list()
     message_audios = list()
