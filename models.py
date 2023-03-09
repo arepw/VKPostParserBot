@@ -1,4 +1,4 @@
-from pydantic import BaseModel, HttpUrl
+from pydantic import BaseModel, HttpUrl, Field
 
 
 class PhotoSizes(BaseModel):
@@ -9,6 +9,19 @@ class PhotoSizes(BaseModel):
 class Photo(BaseModel):
     date: int
     sizes: list[PhotoSizes]
+
+
+class Audio(BaseModel):
+    id: int
+    owner_id: int
+    artist: str
+    title: str
+    duration: int
+    url: HttpUrl
+
+
+class AudiosList(BaseModel):
+    items: list[Audio] = Field(..., alias='response')
 
 
 class VideoCover(BaseModel):
@@ -43,6 +56,7 @@ class Attachment(BaseModel):
     type: str
     photo: Photo | None = None
     video: Video | None = None
+    audio: Audio | None = None
 
 
 class Post(BaseModel):
@@ -50,4 +64,4 @@ class Post(BaseModel):
     from_id: int
     date: int
     text: str
-    attachments: list[Attachment]
+    attachments: list[Attachment] | None = None
