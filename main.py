@@ -1,10 +1,13 @@
 import os
+from dotenv import load_dotenv
 import requests
 import re
 from models import *
 from vk_logic import get_post, get_post_photos, get_post_videos, get_post_audios, get_post_attachment_types
 from pydantic import ValidationError
 import telebot
+
+load_dotenv()
 
 tg_token = os.getenv('TG_TOKEN')
 bot = telebot.TeleBot(tg_token)
