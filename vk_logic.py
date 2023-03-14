@@ -1,9 +1,11 @@
 import os
+from dotenv import load_dotenv
 import requests
 import re
 from models import *
 from pydantic import ValidationError
 
+load_dotenv()
 vk_oauth = os.getenv('VK_OAUTH')
 
 
