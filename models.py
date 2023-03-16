@@ -33,6 +33,19 @@ class VideoFiles(BaseModel):
     mp4_240: HttpUrl | None = None
     mp4_360: HttpUrl | None = None
     mp4_480: HttpUrl | None = None
+    mp4_720: HttpUrl | None = None
+
+    def preferred_video_file(self, video_duration: int) -> str:
+        """
+        Iterates through VideoFiles attributes to find the most suitable video quality
+        :return: str video download url.
+        """
+        files = [self.mp4_480, self.mp4_360, self.mp4_240, self.mp4_144]
+        durations = [90, 120, 180, 240]
+        for item in range(len(files)):
+            if files[item] is not None and video_duration < durations[item]:
+                return files[item]
+        raise AttributeError
 
 
 class Video(BaseModel):

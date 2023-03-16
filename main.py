@@ -41,19 +41,6 @@ def text_handler(post_item: Post) -> str:
     return post_text
 
 
-def prefered_videofile(video):
-    if video.files.mp4_480 is not None and video.duration < 90:
-        return video.files.mp4_480
-    elif video.files.mp4_360 is not None and video.duration < 120:
-        return video.files.mp4_360
-    elif video.files.mp4_240 is not None and video.duration < 180:
-        return video.files.mp4_240
-    elif video.files.mp4_144 is not None and video.duration < 240:
-        return video.files.mp4_144
-    else:
-        raise AttributeError
-
-
 @bot.message_handler(commands=["start"])
 def bot_start(m, res=False):
     bot.send_message(m.chat.id, 'Привет! Пришли мне ссылку на пост из ВК и я преобразую его в сообщение. '
@@ -100,7 +87,7 @@ def bot_handle_message(message):
                         if video.platform is None and video.duration < 241:
                             try:
                                 # Download video to send
-                                response = requests.get(prefered_videofile(video))
+                                response = requests.get(video.files.preferred_video_file(video.duration))
                                 message_medias.append(
                                     telebot.types.InputMediaVideo(media=response.content, supports_streaming=True))
                             except requests.RequestException:
@@ -108,15 +95,17 @@ def bot_handle_message(message):
                                                                          f' из поста!', parse_mode='HTML')
                             except AttributeError:
                                 vk_post.text += f'\n{video.player} - "VK"'
-                                bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения '
-                                                                  f'бота, '
-                                                                  f'либо невозможно получить качество видео подходящее под '
+                                bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения'
+                                                                  f' бота, '
+                                                                  f'либо невозможно получить качество видео '
+                                                                  f'подходящее под'
                                                                   f'ограничения.\nВидео будет добавлено в виде ссылки.',
                                                  parse_mode='HTML'
                                                  )
                         else:
                             vk_post.text += f'\n{video.player} - {"VK" if video.platform is None else video.platform}'
-                            bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения бота, '
+                            bot.send_message(message.chat.id, f'Видео "<i>{video.title}</i>" выходит за ограничения '
+                                                              f'бота, '
                                                               f'либо '
                                                               f'размещено вне ВКонтакте!\nВидео будет добавлено в виде '
                                                               f'ссылки.', parse_mode='HTML')
